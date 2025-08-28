@@ -2,24 +2,26 @@ name: Deploy to Hostinger
 
 on:
   push:
-    branches:
-      - main # atau master sesuai branch utamamu
+    branches: ["main"] # ganti jika branch utamamu "master"
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout source
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
-      - name: Upload to Hostinger via FTP
+      - name: Upload /public -> FTP root (public_html)
         uses: SamKirkland/FTP-Deploy-Action@v4.3.4
         with:
-          server: ${{ secrets.FTP_HOST }}
-          username: ${{ secrets.FTP_USERNAME }}
+          server: ${{ secrets.FTP_HOST }} # contoh: 46.202.x.x (tanpa ftp://)
+          username: ${{ secrets.FTP_USERNAME }} # contoh: u6349xxxx.layananhc.daengbilu.com
           password: ${{ secrets.FTP_PASSWORD }}
-          port: ${{ secrets.FTP_PORT }}
+          port: ${{ secrets.FTP_PORT }} # 21
           protocol: ftp
-          server-dir: public_html/
-          local-dir: ./public/
-          # clean: true  # kalau mau bersihkan file lama
+          local-dir: ./public/ # upload ISI folder public
+          server-dir: ./ # FTP root kamu = public_html
+          exclude: |
+            **/.git*
+            **/.github/**
+            **/node_modules/**
