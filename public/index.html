@@ -1,9 +1,215 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="id">
   <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Data Pegawai</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Kontak Pegawai</title>
+    <style>
+      body {
+        font-family: system-ui, Arial, sans-serif;
+        margin: 24px;
+      }
+      h1,
+      h2 {
+        margin: 0 0 12px;
+      }
+      form {
+        display: grid;
+        gap: 10px;
+        max-width: 560px;
+        margin-bottom: 16px;
+      }
+      label {
+        font-weight: 600;
+      }
+      input,
+      textarea,
+      button {
+        padding: 10px;
+        font-size: 15px;
+      }
+      textarea {
+        min-height: 90px;
+      }
+      .row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+      }
+      .ok {
+        color: green;
+      }
+      .err {
+        color: crimson;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 16px;
+      }
+      th,
+      td {
+        border: 1px solid #e4e4e4;
+        padding: 8px;
+        text-align: left;
+      }
+      th {
+        background: #fafafa;
+      }
+      .toolbar {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        margin: 10px 0;
+      }
+      .toolbar input {
+        flex: 1;
+      }
+    </style>
   </head>
-  <body></body>
+  <body>
+    <h1>Input Kontak Pegawai</h1>
+
+    <form id="f">
+      <div class="row">
+        <div>
+          <label>NIP</label>
+          <input name="nip" required />
+        </div>
+        <div>
+          <label>Nama</label>
+          <input name="nama" required />
+        </div>
+      </div>
+
+      <div class="row">
+        <div>
+          <label>Bidang / Unit</label>
+          <input name="bidang" required />
+        </div>
+        <div>
+          <label>No. Telp</label>
+          <input name="no_telp" placeholder="08xxxxxxxxxx" required />
+        </div>
+      </div>
+
+      <div class="row">
+        <div>
+          <label>Email</label>
+          <input
+            type="email"
+            name="email"
+            placeholder="nama@perusahaan.co.id"
+            required
+          />
+        </div>
+        <div>
+          <label>Alamat</label>
+          <textarea name="alamat" placeholder="Alamat (opsional)"></textarea>
+        </div>
+      </div>
+
+      <button type="submit">Simpan</button>
+      <span id="msg"></span>
+    </form>
+
+    <h2>Daftar Kontak</h2>
+    <div class="toolbar">
+      <input id="q" placeholder="Cari NIP / Nama / Bidang / Email / Telp..." />
+      <button id="search">Cari</button>
+      <button id="reload">Muat Ulang</button>
+    </div>
+
+    <table id="tbl">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>NIP</th>
+          <th>Nama</th>
+          <th>Bidang</th>
+          <th>No. Telp</th>
+          <th>Email</th>
+          <th>Alamat</th>
+          <th>Dibuat</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+
+    <script>
+      const $ = (s) => document.querySelector(s);
+      const form = $("#f");
+      const msg = $("#msg");
+      const q = $("#q");
+      const tbody = $("#tbl tbody");
+
+      form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        msg.textContent = "";
+        msg.className = "";
+
+        const fd = new FormData(form);
+        const payload = Object.fromEntries(fd.entries());
+
+        try {
+          const r = await fetch("/api/pegawai/add", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          });
+          const j = await r.json();
+
+          if (j.success) {
+            msg.textContent = "✔️ Tersimpan";
+            msg.className = "ok";
+            form.reset();
+            await loadList();
+          } else {
+            msg.textContent = "❌ " + (j.message || "Gagal menyimpan");
+            msg.className = "err";
+          }
+        } catch (err) {
+          msg.textContent = "❌ Error jaringan";
+          msg.className = "err";
+        }
+      });
+
+      async function loadList(keyword = "") {
+        tbody.innerHTML = "";
+        const url = keyword
+          ? `/api/pegawai/list?q=${encodeURIComponent(keyword)}&limit=100`
+          : "/api/pegawai/list?limit=100";
+        try {
+          const r = await fetch(url);
+          const j = await r.json();
+          if (j.success) {
+            j.data.forEach((row) => {
+              const tr = document.createElement("tr");
+              tr.innerHTML = `
+          <td>${row.id}</td>
+          <td>${row.nip}</td>
+          <td>${row.nama}</td>
+          <td>${row.bidang}</td>
+          <td>${row.no_telp}</td>
+          <td>${row.email}</td>
+          <td>${row.alamat || "-"}</td>
+          <td>${row.created_at}</td>
+        `;
+              tbody.appendChild(tr);
+            });
+          }
+        } catch (e) {
+          console.error(e);
+        }
+      }
+
+      $("#reload").addEventListener("click", () => loadList(q.value.trim()));
+      $("#search").addEventListener("click", (e) => {
+        e.preventDefault();
+        loadList(q.value.trim());
+      });
+
+      loadList();
+    </script>
+  </body>
 </html>
